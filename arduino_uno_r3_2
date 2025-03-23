@@ -1,0 +1,123 @@
+
+
+// === Broches 74HC595 WEST ===
+const int wLATCH_PIN = 3;
+const int wCLOCK_PIN = 2;
+const int wDATA_PIN  = 4;
+
+// === Broches 74HC595 NORTH ===
+const int nLATCH_PIN = A4;
+const int nCLOCK_PIN = A3;
+const int nDATA_PIN  = A5;
+
+// === Feu WEST ===
+const int wCarGreenLed  = 7;
+const int wCarOrangeLed = 6;
+const int wCarRedLed    = 5;
+const int wPieGreenLed  = 0;
+const int wPieRedLed    = 1;
+
+// === Feu NORTH ===
+const int nCarGreenLed  = 8;
+const int nCarOrangeLed = 9;
+const int nCarRedLed    = 10;
+const int nPieGreenLed  = 11;
+const int nPieRedLed    = 12;
+
+// Temps des feux
+const int greenTime = 60;
+const int orangeTime = 5;
+const int redTime = 50;
+
+// === Chiffres 7 segments ===
+byte digits[] = {
+  0b00111111, // 0
+  0b00000110, // 1
+  0b01011011, // 2
+  0b01001111, // 3
+  0b01100110, // 4
+  0b01101101, // 5
+  0b01111101, // 6
+  0b00000111, // 7
+  0b01111111, // 8
+  0b01101111  // 9
+};
+
+void setup() {
+  // WEST
+  pinMode(wCarGreenLed, OUTPUT);
+  pinMode(wCarOrangeLed, OUTPUT);
+  pinMode(wCarRedLed, OUTPUT);
+  pinMode(wPieGreenLed, OUTPUT);
+  pinMode(wPieRedLed, OUTPUT);
+
+  // NORTH
+  pinMode(nCarGreenLed, OUTPUT);
+  pinMode(nCarOrangeLed, OUTPUT);
+  pinMode(nCarRedLed, OUTPUT);
+  pinMode(nPieGreenLed, OUTPUT);
+  pinMode(nPieRedLed, OUTPUT);
+
+  // 595 WEST
+  pinMode(wLATCH_PIN, OUTPUT);
+  pinMode(wCLOCK_PIN, OUTPUT);
+  pinMode(wDATA_PIN, OUTPUT);
+
+  // 595 NORTH
+  pinMode(nLATCH_PIN, OUTPUT);
+  pinMode(nCLOCK_PIN, OUTPUT);
+  pinMode(nDATA_PIN, OUTPUT);
+}
+
+void loop() {
+  // === PHASE 1 : WEST vert (60), NORTH rouge (50)
+  setFeu(wCarGreenLed, wCarOrangeLed, wCarRedLed, wPieGreenLed, wPieRedLed, HIGH, LOW, LOW, LOW, HIGH);
+  setFeu(nCarGreenLed, nCarOrangeLed, nCarRedLed, nPieGreenLed, nPieRedLed, LOW, LOW, HIGH, HIGH, LOW);
+  dualCountdown(wLATCH_PIN, wCLOCK_PIN, wDATA_PIN, greenTime, nLATCH_PIN, nCLOCK_PIN, nDATA_PIN, redTime);
+
+  // === PHASE 2 : WEST orange (5), NORTH rouge (5)
+  setFeu(wCarGreenLed, wCarOrangeLed, wCarRedLed, wPieGreenLed, wPieRedLed, LOW, HIGH, LOW, LOW, HIGH);
+  setFeu(nCarGreenLed, nCarOrangeLed, nCarRedLed, nPieGreenLed, nPieRedLed, LOW, LOW, HIGH, HIGH, LOW);
+  dualCountdown(wLATCH_PIN, wCLOCK_PIN, wDATA_PIN, orangeTime, nLATCH_PIN, nCLOCK_PIN, nDATA_PIN, 0);
+
+  // === PHASE 3 : NORTH vert (60), WEST rouge (50)
+  setFeu(wCarGreenLed, wCarOrangeLed, wCarRedLed, wPieGreenLed, wPieRedLed, LOW, LOW, HIGH, HIGH, LOW);
+  setFeu(nCarGreenLed, nCarOrangeLed, nCarRedLed, nPieGreenLed, nPieRedLed, HIGH, LOW, LOW, LOW, HIGH);
+  dualCountdown(nLATCH_PIN, nCLOCK_PIN, nDATA_PIN, greenTime, wLATCH_PIN, wCLOCK_PIN, wDATA_PIN, redTime);
+
+  // === PHASE 4 : NORTH orange (5), WEST rouge (5)
+  setFeu(wCarGreenLed, wCarOrangeLed, wCarRedLed, wPieGreenLed, wPieRedLed, LOW, LOW, HIGH, HIGH, LOW);
+  setFeu(nCarGreenLed, nCarOrangeLed, nCarRedLed, nPieGreenLed, nPieRedLed, LOW, HIGH, LOW, LOW, HIGH);
+  dualCountdown(nLATCH_PIN, nCLOCK_PIN, nDATA_PIN, orangeTime, wLATCH_PIN, wCLOCK_PIN, wDATA_PIN, 0);
+}
+
+void dualCountdown(
+  int latch1, int clock1, int data1, int time1,
+  int latch2, int clock2, int data2, int time2) {
+
+  for (int i = 0; i <= max(time1, time2); i++) {
+    if (i <= time1) displayDigit(latch1, clock1, data1, time1 - i);
+    if (i <= time2) displayDigit(latch2, clock2, data2, time2 - i);
+    delay(1000);
+  }
+}
+
+void displayDigit(int latch, int clock, int data, int value) {
+  int tens = value / 10;
+  int units = value % 10;
+
+  digitalWrite(latch, LOW);
+  shiftOut(data, clock, MSBFIRST, digits[tens]);   // gauche
+  shiftOut(data, clock, MSBFIRST, digits[units]);  // droite
+  digitalWrite(latch, HIGH);
+}
+
+// === Fonction pour allumer un feu voiture + piéton ===
+void setFeu(int carG, int carO, int carR, int pieG, int pieR,
+            bool gVal, bool oVal, bool rVal, bool pgVal, bool prVal) {
+  digitalWrite(carG, gVal);
+  digitalWrite(carO, oVal);
+  digitalWrite(carR, rVal);
+  digitalWrite(pieG, pgVal);
+  digitalWrite(pieR, prVal);
+}
